@@ -1,6 +1,6 @@
 
 // purpose : simulate cons & car & cdr & map in Scheme
-// compile : g++ -std=c++11 -o cons Cons.cpp
+// compile : g++ -std=c++11 -o cons cons.cpp
 // run     : ./cons
 // date    : 2017.03.08
 
@@ -64,6 +64,16 @@ struct plus : int_ < T::value + N::value > {};
 //
 template <typename T, typename N>
 struct minus : int_ < T::value - N::value > {};
+
+// inc_f
+//
+struct inc_f {
+    template <typename n>
+    struct apply : int_ < n::value + 1 > {};
+};
+
+template <typename n>
+struct inc : int_ < n::value + 1 > {};
 
 // cons
 //
@@ -133,6 +143,46 @@ struct type_ {
 template <typename T, T ...elements>
 struct list : list_t<type_<T, elements>...> {};
 
+// length
+//
+template <typename list>
+struct length
+{
+    static constexpr unsigned int value =
+        1 + length<typename cdr<list>::type>::value;
+};
+
+template <>
+struct length<empty>
+{
+    static constexpr unsigned int value = 0;
+};
+
+// is_empty
+//
+template <typename list>
+struct is_empty
+{
+    static constexpr bool value = std::is_same<list, empty>::value;
+};
+
+// append
+//
+struct append_f {
+    template <typename list1, typename list2>
+    struct apply : cons<
+        typename car<list1>::type,
+        typename append_f::template apply<typename cdr<list1>::type, list2>::type>
+    {};
+
+    template<typename list2>
+    struct apply <empty, list2>: list2
+    {};
+};
+
+template <typename list1, typename list2>
+struct append : append_f::template apply<list1, list2> {};
+
 // map
 //
 struct map_f {
@@ -145,13 +195,6 @@ struct map_f {
 
 template <typename fn, typename list>
 struct map : map_f::template apply<fn, list> {};
-
-// inc_f
-//
-struct inc_f {
-    template <typename n>
-    struct apply : int_ < n::value + 1 > {};
-};
 
 // apply
 //
@@ -170,9 +213,6 @@ struct lambda {
     template <typename ...args>
     struct apply : apply_f::template apply<F, args...> {};
 };
-
-template <typename n>
-struct inc : int_ < n::value + 1 > {};
 
 // transform
 //
@@ -244,6 +284,25 @@ struct equal_f {
 template <typename list1, typename list2, typename pred = lambda<std::is_same>>
 struct equal : equal_f::template apply<list1, list2, pred> {};
 
+// print
+//
+template <typename list>
+void print()
+{
+    std::cout << car<list>::value;
+    using rest = typename cdr<list>::type;
+    if (false == is_empty<rest>::value) {
+        std::cout << ", ";
+        print<rest>();
+    }
+}
+
+template <>
+void print<empty>()
+{
+    std::cout << std::endl;
+}
+
 int main()
 {
     // plus & minus
@@ -254,7 +313,7 @@ int main()
     // binary
     //
     std::cout << "\n>binary" << std::endl;
-    std::cout << binary<101>::type::value << std::endl;         // 5
+    std::cout << binary<101>::value << std::endl;         // 5
 
     // cons
     //
@@ -277,26 +336,43 @@ int main()
     std::cout << "\n>list" << std::endl;
     std::cout << car<list_t<int_<1>, int_<2>, int_<3>>>::value << std::endl;
     std::cout << car<list<int, 1, 2, 3>>::value << std::endl;
-    std::cout << (std::is_same<list<int>::type, empty>::value ? "same" : "defferent") << std::endl;
+    std::cout << (std::is_same<list<int>, empty>::value ? "same" : "defferent") << std::endl;
+    print<list<int, 1, 2, 3>>();
+
+    // length
+    //
+    std::cout << "\n>list length" << std::endl;
+    std::cout << "is_empty<empty>: " << is_empty<empty>::value << std::endl;
+    std::cout << "is_empty<list<int, 1, 2, 3>>: " << is_empty<list<int, 1, 2, 3>>::value << std::endl;
+    std::cout << length<list<int, 1, 2, 3>>::value << std::endl;
+
+    // append
+    //
+    std::cout << "\n>list append" << std::endl;
+    using a1 = list<int, 1, 2, 3>;
+    using a2 = list<int, 4, 5, 6, 7>;
+    using a3 = append<a1, a2>;
+    std::cout << length<a3>::value << std::endl;
+    print<a3>();
 
     // map
     //
     std::cout << "\n>map" << std::endl;
-    std::cout << map<inc_f, list<int, 1, 2, 3>>::type::head::value << std::endl;
+    std::cout << map<inc_f, list<int, 1, 2, 3>>::head::value << std::endl;
 
     // lambda
     //
     std::cout << "\n>lambda" << std::endl;
-    std::cout << lambda<inc>::template apply<int_<0>>::type::value << std::endl;
-    std::cout << map<lambda<inc>, list<int, 1, 2, 3>>::type::head::value << std::endl;
+    std::cout << lambda<inc>::template apply<int_<0>>::value << std::endl;
+    std::cout << map<lambda<inc>, list<int, 1, 2, 3>>::head::value << std::endl;
 
     // transform
     //
     std::cout << "\n>transform" << std::endl;
     using l1 = list<int, 1, 2, 3>;
     using l2 = list<int, 3, 2, 1>;
-    using minus_t = transform<l1, l2, lambda<minus>>::type; // == list<int, -2, 0, 2>
-    using plus_t = transform<l1, l2, lambda<plus>>::type;   // == list<int, 4, 4, 4>
+    using minus_t = transform<l1, l2, lambda<minus>>; // == list<int, -2, 0, 2>
+    using plus_t = transform<l1, l2, lambda<plus>>;   // == list<int, 4, 4, 4>
     std::cout << minus_t::head::value << std::endl;
     std::cout << plus_t::head::value << std::endl;
 
