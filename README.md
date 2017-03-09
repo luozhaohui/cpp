@@ -3,10 +3,10 @@ C++ code snippet
 =============
 
 1. [cons.cpp](https://github.com/luozhaohui/cpp/blob/master/cons.cpp)  
-    基于meta programming模拟Scheme中的list以及相关操作，如car、cdr、length、is_empty、reverse、equal、map、transform、print等.    
+    基于meta programming模拟Scheme中的list以及相关操作，如cons、car、cdr、length、is_empty、reverse、equal、map、transform、enumerate、print等.    
     
-    使用示例：
-        
+    使用示例:  
+    
         // plus & minus
         //
         std::cout << "\n>plus & minus" << std::endl;
@@ -97,4 +97,25 @@ C++ code snippet
         print<pl>();    // 4, 4, 4
         print<te>();
         // print<el>(); // assertion: length mismatch!
-
+    
+        // equal
+        //
+        std::cout << "\n>equal" << std::endl;
+        using e1 = list<int, 1, 2, 3>;
+        using e2 = list<int, 1, 2, 3>;
+        using e3 = list<int, 1, 2, 1>;
+        std::cout << "equal<e1, e2> : " << equal<e1, e2>::value << std::endl;   // 1
+        std::cout << "equal<e1, e3> : " << equal<e1, e3>::value << std::endl;   // 0
+        std::cout << "equal<e1, list<int>> : " << equal<e1, list<int>>::value << std::endl; // 0
+        std::cout << "equal<list<int>, e1> : " << equal<list<int>, e1>::value << std::endl; // 0
+        std::cout << "equal<list<int>, list<int>> : " << equal<list<int>, list<int>>::value << std::endl;   // 1
+    
+        // enumerate
+        //
+        std::cout << "\n>enumerate" << std::endl;
+        using value_type = typename car<e1>::value_type;
+        auto sqr_print = [](value_type val) { std::cout << val * val << " "; };
+        enumerate<decltype(sqr_print), e1>(sqr_print);      // 1 4 9
+    
+        std::cout << "\n\n>> end <<" << std::endl;
+    
