@@ -1,5 +1,5 @@
 
-// purpose : simulate cons & car & cdr & map in Scheme
+// purpose : simulate list and list's operators in Scheme
 // compile : g++ -std=c++11 -o cons cons.cpp
 // run     : ./cons
 // date    : 2017.03.08
@@ -208,13 +208,13 @@ struct append : std::conditional <
 //
 struct reverse_t {
     template <typename reset, typename ready>
-    struct apply :reverse_t::template apply<
+    struct apply : reverse_t::template apply<
             typename cdr<reset>::type,
             cons<typename car<reset>::type, ready>>
     {};
 
     template<typename ready>
-    struct apply <empty, ready>: ready
+    struct apply <empty, ready> : ready
     {};
 };
 
