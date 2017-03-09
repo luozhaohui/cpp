@@ -1,10 +1,12 @@
 
-// purpose : simulate list and list's operators in Scheme
+// purpose : simulate list and list's operators in Scheme, such as cons, car, cdr,
+//           length, is_empty, reverse, map, transform, equal, enumerate, print.
 // compile : g++ -std=c++11 -o cons cons.cpp
 // run     : ./cons
 // date    : 2017.03.08
 
 #include <iostream>
+#include <functional>
 
 // type_
 //
@@ -308,7 +310,9 @@ struct transform : std::conditional <
 // equal
 //
 struct equal_t {
-    template <typename list1, typename list2, typename pred = lambda<std::is_same>>
+    // both lists are not empty
+    template <typename list1, typename list2, int empty_value = 0,
+        typename pred = lambda<std::is_same>>
     struct apply : std::conditional <
         !pred::template apply <
             typename car<list1>::type,
@@ -318,22 +322,56 @@ struct equal_t {
         typename equal_t::template apply <
             typename cdr<list1>::type,
             typename cdr<list2>::type,
+            (is_empty<typename cdr<list1>::type>::value
+                + is_empty<typename cdr<list2>::type>::value),
             pred
         >::type
     > {};
 
-    template <typename list, typename pred>
-    struct apply<empty, list, pred> : bool_<false> {};
+    // one of the list is empty.
+    template <typename list1, typename list2, typename pred>
+    struct apply<list1, list2, 1, pred>: bool_<false>
+    {};
 
-    template <typename list, typename pred>
-    struct apply<list, empty, pred> : bool_<false> {};
-
-    template <typename pred>
-    struct apply<empty, empty, pred> : bool_<true> {};
+    // both lists are empty.
+    template <typename list1, typename list2, typename pred>
+    struct apply<list1, list2, 2, pred>: bool_<true>
+    {};
 };
 
 template <typename list1, typename list2, typename pred = lambda<std::is_same>>
-struct equal : equal_t::template apply<list1, list2, pred> {};
+struct equal : equal_t::template apply<list1, list2,
+    (is_empty<list1>::value + is_empty<list2>::value), pred>::type
+{};
+
+// enumerate
+//
+template <typename fn, typename list, bool is_empty>
+struct enumerate_t;
+
+template <typename fn, typename list>
+void enumerate(fn f)
+{
+    enumerate_t<fn, list, is_empty<list>::value> impl;
+    impl(f);
+}
+
+template <typename fn, typename list, bool is_empty = false>
+struct enumerate_t
+{
+    void operator()(fn f) {
+        f(car<list>::value);
+        enumerate<fn, typename cdr<list>::type>(f);
+    }
+};
+
+template <typename fn, typename list>
+struct enumerate_t<fn, list, true>
+{
+    void operator()(fn f) {
+        // nothing for empty
+    }
+};
 
 // print
 //
@@ -363,11 +401,8 @@ struct print_t<list, false>
         using rest = typename cdr<list>::type;
         if (false == is_empty<rest>::value) {
             std::cout << ", ";
-            print<rest>();
         }
-        else {
-            std::cout << std::endl;
-        }
+        print<rest>();
     }
 };
 
@@ -464,5 +499,25 @@ int main()
     print<te>();
     // print<el>(); // assertion: length mismatch!
 
+    // equal
+    //
+    std::cout << "\n>equal" << std::endl;
+    using e1 = list<int, 1, 2, 3>;
+    using e2 = list<int, 1, 2, 3>;
+    using e3 = list<int, 1, 2, 1>;
+    std::cout << "equal<e1, e2> : " << equal<e1, e2>::value << std::endl;   // 1
+    std::cout << "equal<e1, e3> : " << equal<e1, e3>::value << std::endl;   // 0
+    std::cout << "equal<e1, list<int>> : " << equal<e1, list<int>>::value << std::endl; // 0
+    std::cout << "equal<list<int>, e1> : " << equal<list<int>, e1>::value << std::endl; // 0
+    std::cout << "equal<list<int>, list<int>> : " << equal<list<int>, list<int>>::value << std::endl;   // 1
+
+    // enumerate
+    //
+    std::cout << "\n>enumerate" << std::endl;
+    using value_type = typename car<e1>::value_type;
+    auto sqr_print = [](value_type val) { std::cout << val * val << " "; };
+    enumerate<decltype(sqr_print), e1>(sqr_print);      // 1 4 9
+
+    std::cout << "\n\n>> end <<" << std::endl;
     return 0;
 }
