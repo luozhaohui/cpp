@@ -3,7 +3,7 @@ C++ code snippet
 =============
 
 1. [cons.cpp](https://github.com/luozhaohui/cpp/blob/master/cons.cpp)  
-    基于<code>meta programming</code>模拟<code>Scheme</code>中的<code>list</code>以及相关操作，如<code>cons</code>、car、cdr、length、is_empty、reverse、equal、map、transform、enumerate、print等.    
+    基于<code>meta programming</code>模拟<code>Scheme</code>中的<code>list</code>以及相关操作，如<code>cons</code>、<code>car</code>、cdr、length、is_empty、reverse、equal、map、transform、enumerate、print等.    
     
     文档说明：[基于C++11模板元编程实现Scheme中的list及相关函数式编程接口](http://blog.csdn.net/kesalin/article/details/62229505)
     使用示例:  
